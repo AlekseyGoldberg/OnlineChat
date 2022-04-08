@@ -1,1 +1,4 @@
- .idea/
+target/
+.idea/
+.DS_Store
+src/main/resources/logs/
