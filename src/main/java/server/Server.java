@@ -78,6 +78,12 @@ public class Server {
 //                                for (SocketChannel user:sockets.keySet()){
 //                                    user.write(buffer);
 //                                }
+//                                socketChannel.write(buffer);
+                                // По идее мы проходимся по пользователям, которые сейчас онлайн
+                                // и отправляем им сообщение, которое получили
+                                for (SocketChannel user:sockets.keySet()){
+                                    user.write(buffer);
+                                }
 
                                 log("Пользователь: [" +
                                         socketChannel.getRemoteAddress() + "] отправил сообщение: " + clientMsg);
