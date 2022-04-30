@@ -3,17 +3,12 @@ package server;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
@@ -61,7 +56,7 @@ public class Server {
                                 }
                             } else if (event.isWritable()) {
                                 SocketChannel socketChannel = (SocketChannel) event.channel();
-                                ByteBuffer buffer =sockets.get(socketChannel);
+                                ByteBuffer buffer = sockets.get(socketChannel);
 
                                 buffer.flip();
                                 String clientMsg = new String(buffer.array(), buffer.position(), buffer.limit());
@@ -72,12 +67,10 @@ public class Server {
                                         .getBytes()));
                                 buffer.flip();
 
-                                socketChannel.write(buffer);
-                                // По идее мы проходимся по пользователям, которые сейчас онлайн
-                                // и отправляем им сообщение, которое получили
-//                                for (SocketChannel user:sockets.keySet()){
-//                                    user.write(buffer);
-//                                }
+//                                socketChannel.write(buffer);
+                                for (SocketChannel user : sockets.keySet()) {
+                                    user.write(buffer);
+                                }
 
                                 log("Пользователь: [" +
                                         socketChannel.getRemoteAddress() + "] отправил сообщение: " + clientMsg);
