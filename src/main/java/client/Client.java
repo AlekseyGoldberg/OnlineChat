@@ -1,47 +1,71 @@
 package client;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
+import java.io.*;
+import java.net.Socket;
 import java.util.Scanner;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class Client {
-    public static void main(String[] args) throws IOException {
-        InetSocketAddress socketAddress = new InetSocketAddress("127.0.0.1", 8080);
-        SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.connect(socketAddress);
+    static final int PORT = Integer.parseInt(getSettingsWithName("PORT"));
+    static final String HOST = getSettingsWithName("HOST");
 
-        System.out.println("Соединение установлено");
-        try {
-            Scanner scanner = new Scanner(System.in);
-            ByteBuffer inputBuffer = ByteBuffer.allocate(2 << 10);
-            AtomicReference<String> msg = new AtomicReference<>();
+
+    public static void start() throws IOException {
+        Socket clientSocket = new Socket(HOST, PORT);
+        new Thread(new InMessageRunnable(clientSocket)).start();
+
+        log("Соединение установлено");
+        try (Scanner scanner = new Scanner(System.in);
+             clientSocket;
+             PrintWriter out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true)) {
+
+            System.out.println("Как ваше имя?");
+            String name = scanner.nextLine();
+            out.print(name);
+            String message;
+            System.out.println("Если хотите выйти из чата напишите '/exit'" +
+                    "\nНачинайте печатать");
             while (true) {
-                Thread inputThread = new Thread(() -> {
-                    System.out.print("Введите строку: ");
-                    msg.set(scanner.nextLine());
-                });
-                inputThread.start();
-                inputThread.join();
-                if (msg.get().equalsIgnoreCase("/exit")) {
+                message = scanner.nextLine();
+                if (message.equalsIgnoreCase("/exit")) {
+                    out.print(message);
                     break;
                 }
-                socketChannel.write(ByteBuffer.wrap(msg.get().getBytes(StandardCharsets.UTF_8)));
-                int byteCount = socketChannel.read(inputBuffer);
-                Thread outThread = new Thread(() -> {
-                    System.out.println(new String(inputBuffer.array(), 0, byteCount, StandardCharsets.UTF_8).trim());
-                });
-                outThread.start();
-                outThread.join();
-                inputBuffer.clear();
+                out.printf("%s: %s\n", name, message);
+                log(String.format("%s: %s\n", name, message));
             }
-        } catch (InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            socketChannel.close();
+        }
+    }
+
+    public static String getSettingsWithName(String name) {
+        StringBuilder builder = new StringBuilder();
+        try (FileReader fileReader = new FileReader("src/main/resources/settings/ClientSettings.log")) {
+            int c;
+            while ((c = fileReader.read()) != -1) {
+                builder.append((char) c);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String[] settings = builder.toString()
+                .split("\n");
+        String foundProperty = null;
+        for (String property : settings) {
+            if (property.startsWith(name)) {
+                String[] propertyInMass = property.split(" ");
+                foundProperty = propertyInMass[1];
+            }
+        }
+        return foundProperty;
+    }
+
+    public static void log(String msg) throws IOException {
+        String path = "src/main/resources/logs/clientLogs.log";
+        try (FileWriter fw = new FileWriter(path, true)) {
+            fw.append(msg)
+                    .append("\n");
+            fw.flush();
         }
     }
 }
